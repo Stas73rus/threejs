@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Three.js Load 3D Model with Outline</title>
+  <style>
+    body {
+      margin: 0;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.138.0/build/three.module.js",
+        "OrbitControls": "https://unpkg.com/three@0.138.0/examples/jsm/controls/OrbitControls.js",
+        "GLTFLoader": "https://unpkg.com/three@0.138.0/examples/jsm/loaders/GLTFLoader.js",
+        "EffectComposer": "https://unpkg.com/three@0.138.0/examples/jsm/postprocessing/EffectComposer.js",
+        "RenderPass": "https://unpkg.com/three@0.138.0/examples/jsm/postprocessing/RenderPass.js",
+        "OutlinePass": "https://unpkg.com/three@0.138.0/examples/jsm/postprocessing/OutlinePass.js",
+        "ShaderPass": "https://unpkg.com/three@0.138.0/examples/jsm/postprocessing/ShaderPass.js",
+        "CopyShader": "https://unpkg.com/three@0.138.0/examples/jsm/shaders/CopyShader.js"
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'OrbitControls';
+    import { GLTFLoader } from 'GLTFLoader';
+    import { EffectComposer } from 'EffectComposer';
+    import { RenderPass } from 'RenderPass';
+    import { OutlinePass } from 'OutlinePass';
+
+    // Creating a scene and renderer
+    const scene = new THREE.Scene();
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0xffffff, 1);  // Установка белого фона
+    document.body.appendChild(renderer.domElement);
+
+    // Creating a perspective camera
+    const perspectiveCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    perspectiveCamera.position.z = 5;
+
+    // Orthogonal camera
+    const aspect = window.innerWidth / window.innerHeight;
+    const frustumSize = 10;
+    const orthoCamera = new THREE.OrthographicCamera(
+      frustumSize * aspect / -2, frustumSize * aspect / 2,
+      frustumSize / 2, frustumSize / -2,
+      0.1, 1000
+    );
+    orthoCamera.position.set(0, 10, 0);
+    orthoCamera.lookAt(0, 0, 0);
+
+    // Current camera (perspective by default)
+    let currentCamera = perspectiveCamera;
+
+    // Camera Controllers
+    const controls = new OrbitControls(currentCamera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    // Lighting
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(1, 1, 1).normalize();
+    scene.add(light);
+
+    // Adding ambient lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);  // Мягкий свет
+    scene.add(ambientLight);
+
+    // White material
+    const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0x78DBE2 });
+
+    // Function to replace all materials with white
+    function replaceMaterialsWithWhite(object) {
+      object.traverse((child) => {
+        if (child.isMesh) {
+          child.material = whiteMaterial;
+        }
+      });
+    }
+
+    // Uploading your model (.glb or .gltf)
+    const loader = new GLTFLoader();
+    loader.load(
+      '/models/825001.glb', // The path to your model
+      (gltf) => {
+        const model = gltf.scene;
+
+        // We change the materials of the model to white
+        replaceMaterialsWithWhite(model);
+
+        //Adding a model to the scene
+        scene.add(model);
+
+        // Updating OutlinePass after loading the model
+        outlinePass.selectedObjects = [model];
+      },
+      undefined,
+      (error) => {
+        console.error('Model loading error:', error);
+      }
+    );
+
+    // Post-processing with stroke effect
+    const composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, currentCamera);
+    composer.addPass(renderPass);
+
+    const outlinePass = new OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), scene, currentCamera);
+    outlinePass.edgeStrength = 5.0;    // The strength of the visible stroke (increase the value for a thicker stroke)
+    outlinePass.edgeGlow = 0.0;        // Светящийся эффект (0 - отключен)
+    outlinePass.edgeThickness = 2.0;   // Stroke thickness
+    outlinePass.pulsePeriod = 0;       // Ripple animation (0 - disabled)
+    outlinePass.visibleEdgeColor.set(0x000000);  // black outline color
+    outlinePass.hiddenEdgeColor.set(0x000000);   // Black outline color for hidden parts
+    composer.addPass(outlinePass);
+
+    // The keystroke handler
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'T' || event.key === 't') {
+        if (currentCamera === perspectiveCamera) {
+          currentCamera = orthoCamera;
+          orthoCamera.position.set(0, 10, 0);
+          orthoCamera.lookAt(0, 0, 0);
+        } else {
+          currentCamera = perspectiveCamera;
+        }
+        controls.object = currentCamera;
+        outlinePass.camera = currentCamera;
+        renderPass.camera = currentCamera;
+      }
+    });
+
+    // Animation
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      composer.render();
+    }
+
+    animate();
+
+    // Window resizing processing
+    window.addEventListener('resize', () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      renderer.setSize(width, height);
+
+      perspectiveCamera.aspect = width / height;
+      perspectiveCamera.updateProjectionMatrix();
+
+      const aspect = width / height;
+      orthoCamera.left = frustumSize * aspect / -2;
+      orthoCamera.right = frustumSize * aspect / 2;
+      orthoCamera.top = frustumSize / 2;
+      orthoCamera.bottom = frustumSize / -2;
+      orthoCamera.updateProjectionMatrix();
+
+      composer.setSize(width, height);
+    });
+  </script>
+</body>
+
+</html>
