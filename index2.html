@@ -45,7 +45,7 @@
             displayConditionalEdges: true,
             thickness: 1,
             useThickLines: false,
-            model: 'HELMET',
+            model: 'CHAIR',
 
             randomize: () => randomizeColors(),
         };
@@ -469,7 +469,7 @@
             cylinder.children[0].castShadow = true;
             models.CYLINDER = cylinder;
 
-            models.HELMET = null;
+            models.CHAIR = null;
             new GLTFLoader().load(
                 '/models/825001.glb',
                 gltf => {
@@ -478,7 +478,7 @@
                     model.children[0].geometry.computeBoundingBox();
                     model.children[0].castShadow = true;
 
-                    models.HELMET = model;
+                    models.CHAIR = model;
                     updateModel();
 
                 }
