@@ -463,11 +463,6 @@
 
             scene.add(dirLight);
 
-            const cylinder = new THREE.Group();
-            cylinder.add(new THREE.Mesh(new THREE.CylinderBufferGeometry(0.25, 0.25, 0.5, 100)));
-            cylinder.children[0].geometry.computeBoundingBox();
-            cylinder.children[0].castShadow = true;
-            models.CYLINDER = cylinder;
 
             models.CHAIR = null;
             new GLTFLoader().load(
@@ -505,20 +500,12 @@
             // dat gui
             gui = new dat.GUI();
             gui.width = 300;
-            gui.add(params, 'colors', ['LIGHT', 'DARK', 'CUSTOM']);
-            gui.addColor(params, 'backgroundColor');
-            gui.addColor(params, 'modelColor');
-            gui.addColor(params, 'lineColor');
-            gui.addColor(params, 'shadowColor');
-            gui.add(params, 'randomize');
 
             const modelFolder = gui.addFolder('model');
 
             modelFolder.add(params, 'model', Object.keys(models)).onChange(updateModel);
 
             modelFolder.add(params, 'opacity').min(0).max(1.0).step(0.01);
-
-            modelFolder.add(params, 'lit');
 
             modelFolder.open();
 
@@ -529,17 +516,6 @@
                 .max(120)
                 .onChange(initEdgesModel);
 
-            linesFolder.add(params, 'display', [
-                'THRESHOLD_EDGES',
-                'NORMAL_EDGES',
-                'NONE',
-            ]).onChange(initEdgesModel);
-
-            linesFolder.add(params, 'displayConditionalEdges');
-
-            linesFolder.add(params, 'useThickLines');
-
-            linesFolder.add(params, 'thickness', 0, 5);
 
             linesFolder.open();
 
